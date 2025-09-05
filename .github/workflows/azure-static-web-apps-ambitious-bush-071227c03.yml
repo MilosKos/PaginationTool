@@ -26,10 +26,10 @@ jobs:
           dotnet-version: '9.0.x'
       
       - name: Restore dependencies
-        run: dotnet restore PaginationTool.sln
+        run: dotnet restore PaginationTool.Web/PaginationTool.Web.csproj
       
       - name: Build
-        run: dotnet build PaginationTool.sln --configuration Release --no-restore
+        run: dotnet build PaginationTool.Web/PaginationTool.Web.csproj --configuration Release --no-restore
       
       - name: Publish Blazor WebAssembly
         run: dotnet publish PaginationTool.Web/PaginationTool.Web.csproj --configuration Release --output ./build/web
