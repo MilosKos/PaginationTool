@@ -1,0 +1,267 @@
+@page "/pagination"
+@using PaginationTool.Shared.Models
+@using PaginationTool.Shared.Services
+
+<div class="api-query-tool">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="display-4 text-center mb-4">🔍 API Pagination Query Tool</h1>
+                <p class="lead text-center text-muted mb-5">
+                    Query paginated APIs with authentication and save all data to a file
+                </p>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Configuration Panel -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">🔧 API Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="apiUrl" class="form-label">API URL <span class="text-danger">*</span></label>
+                            <input type="url" class="form-control" id="apiUrl" @bind="Config.ApiUrl" 
+                                   placeholder="https://api.example.com/companies" />
+                            <div class="form-text">The base URL for the paginated API endpoint</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenantId" class="form-label">Tenant ID <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="tenantId" @bind="Config.TenantId" 
+                                   placeholder="your-tenant-id" />
+                            <div class="form-text">Value for the x-raet-tenant-id header</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pageSize" class="form-label">Page Size</label>
+                            <input type="number" class="form-control" id="pageSize" @bind="Config.PageSize" 
+                                   min="1" max="1000" />
+                            <div class="form-text">Number of items to request per page (take parameter)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Authentication Panel -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">🔐 Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="authType" id="bearerToken" 
+                                       @onchange="() => SetAuthType(true)" checked="@UseDirectToken">
+                                <label class="form-check-label" for="bearerToken">
+                                    Use Bearer Token Directly
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="authType" id="clientCredentials" 
+                                       @onchange="() => SetAuthType(false)" checked="@(!UseDirectToken)">
+                                <label class="form-check-label" for="clientCredentials">
+                                    Use Client Credentials Flow
+                                </label>
+                            </div>
+                        </div>
+
+                        @if (UseDirectToken)
+                        {
+                            <div class="mb-3">
+                                <label for="bearerTokenValue" class="form-label">Bearer Token <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="bearerTokenValue" @bind="Config.Authentication.BearerToken" 
+                                          rows="3" placeholder="Your bearer token..."></textarea>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <label for="tokenEndpoint" class="form-label">Token Endpoint <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" id="tokenEndpoint" @bind="Config.Authentication.TokenEndpoint" 
+                                       placeholder="https://auth.example.com/oauth/token" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="clientId" class="form-label">Client ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="clientId" @bind="Config.Authentication.ClientId" 
+                                       placeholder="your-client-id" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="clientSecret" class="form-label">Client Secret <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="clientSecret" @bind="Config.Authentication.ClientSecret" 
+                                       placeholder="your-client-secret" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <button class="btn btn-info btn-lg me-3" @onclick="TestConnection" disabled="@IsProcessing">
+                    <i class="fas fa-plug"></i> Test Connection
+                </button>
+                <button class="btn btn-primary btn-lg me-3" @onclick="StartQuery" disabled="@IsProcessing">
+                    <i class="fas fa-play"></i> QUERY
+                </button>
+                @if (IsProcessing)
+                {
+                    <button class="btn btn-danger btn-lg" @onclick="CancelQuery">
+                        <i class="fas fa-stop"></i> Cancel
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Progress and Results -->
+        @if (!string.IsNullOrEmpty(StatusMessage) || LastResult != null)
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">📊 Status & Results</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (IsProcessing)
+                            {
+                                <div class="mb-3">
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                             role="progressbar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(StatusMessage))
+                            {
+                                <div class="alert alert-info mb-3">
+                                    <i class="fas fa-info-circle"></i> @StatusMessage
+                                </div>
+                            }
+
+                            @if (LastResult != null)
+                            {
+                                @if (LastResult.Success)
+                                {
+                                    <div class="alert alert-success">
+                                        <h6><i class="fas fa-check-circle"></i> Query Completed Successfully!</h6>
+                                        <ul class="mb-0">
+                                            <li><strong>Total Records:</strong> @LastResult.TotalRecords.ToString("N0")</li>
+                                            <li><strong>Pages Processed:</strong> @LastResult.PagesProcessed</li>
+                                            <li><strong>Duration:</strong> @LastResult.Duration.TotalSeconds.ToString("F2") seconds</li>
+                                            @if (!string.IsNullOrEmpty(LastResult.FilePath))
+                                            {
+                                                <li><strong>Saved to:</strong> <code>@LastResult.FilePath</code></li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger">
+                                        <h6><i class="fas fa-exclamation-triangle"></i> Query Failed</h6>
+                                        <p class="mb-0">@LastResult.ErrorMessage</p>
+                                        @if (LastResult.Duration.TotalSeconds > 0)
+                                        {
+                                            <small>Duration: @LastResult.Duration.TotalSeconds.ToString("F2") seconds</small>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Help Section -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">💡 How It Works</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Authentication Options:</h6>
+                                <ul>
+                                    <li><strong>Bearer Token:</strong> Use an existing token directly</li>
+                                    <li><strong>Client Credentials:</strong> Automatically obtain token using OAuth2 client credentials flow</li>
+                                </ul>
+                                
+                                <h6>API Requirements:</h6>
+                                <ul>
+                                    <li>Returns JSON with <code>value</code> array containing data</li>
+                                    <li>Returns <code>nextLink</code> for pagination (optional)</li>
+                                    <li>Supports <code>take</code> query parameter for page size</li>
+                                    <li>Supports <code>nextToken</code> query parameter for next page</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Example API Response:</h6>
+                                <pre class="bg-light p-2 rounded small"><code>{
+  "value": [
+    { "id": 1, "name": "Item 1" },
+    { "id": 2, "name": "Item 2" }
+  ],
+  "nextLink": "/companies?nextToken=ABC123&take=2"
+}</code></pre>
+                                
+                                <h6>Output:</h6>
+                                <ul>
+                                    <li>All data merged from all pages</li>
+                                    <li>Saved as JSON file in Downloads/PaginationTool/</li>
+                                    <li>Filename includes timestamp</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .api-query-tool {
+        padding: 20px 0;
+    }
+
+    .form-text {
+        font-size: 0.875em;
+        color: #6c757d;
+    }
+
+    .btn i {
+        margin-right: 5px;
+    }
+
+    .progress {
+        height: 8px;
+    }
+
+    .alert h6 {
+        margin-bottom: 10px;
+    }
+
+    .alert ul {
+        margin-bottom: 0;
+    }
+
+    .alert i {
+        margin-right: 5px;
+    }
+
+    pre code {
+        font-size: 0.8rem;
+    }
+
+    .card-header h5 i {
+        margin-right: 8px;
+    }
+</style>

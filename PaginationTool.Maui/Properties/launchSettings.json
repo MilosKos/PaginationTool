@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Windows Machine": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "nativeDebugging": false
+    },
+    "Android Local Device": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "nativeDebugging": false
+    },
+    "iOS Local Device": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "nativeDebugging": false
+    }
+  }
+}
