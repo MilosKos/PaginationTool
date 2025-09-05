@@ -15,10 +15,25 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore PaginationTool.sln
+      
+      - name: Build
+        run: dotnet build PaginationTool.sln --configuration Release --no-restore
+      
+      - name: Publish Blazor WebAssembly
+        run: dotnet publish PaginationTool.Web/PaginationTool.Web.csproj --configuration Release --output ./build/web
+      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -28,9 +43,10 @@ jobs:
           action: "upload"
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/PaginationTool.Web" # App source code path
+          app_location: "./build/web/wwwroot" # App source code path - WebAssembly static files
           api_location: "" # Api source code path - optional
-          output_location: "/PaginationTool.Web/wwwroot" # Built app content directory - optional
+          output_location: "" # Built app content directory - optional (empty because we're providing pre-built content)
+          skip_app_build: true # Skip the build since we're providing pre-built content
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:

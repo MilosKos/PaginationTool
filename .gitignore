@@ -6,3 +6,7 @@ obj/
 .vscode/
 *.userprefs
 .DS_Store
+
+# Build output directories
+build/
+publish/
