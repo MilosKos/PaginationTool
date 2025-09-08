@@ -81,6 +81,48 @@ dotnet run -f net9.0-windows10.0.19041.0
 dotnet build PaginationTool.sln
 ```
 
+## 📦 Publishing Desktop Application
+
+The MAUI desktop application can be published as a self-contained executable for easy distribution:
+
+### Optimized Self-Contained Deployment
+
+Creates a self-contained application with minimal files - no .NET runtime installation required:
+
+```bash
+# Navigate to the MAUI project
+cd PaginationTool.Maui
+
+# Publish as optimized self-contained application
+dotnet publish -c Release -r win-x64 --self-contained true
+```
+
+**Output Folder**: `bin\Release\net9.0-windows10.0.19041.0\win-x64\publish\`
+
+**Contains**:
+- `PaginationTool.Maui.exe` - Main executable (~15MB)
+- `wwwroot\` - Web assets folder (CSS, HTML)
+- Required .NET runtime assemblies
+- Configuration files
+
+### Distribution
+
+- **Copy entire publish folder**: Distribute the complete publish folder to target machines
+- **No installation required**: Includes .NET runtime and all dependencies
+- **English-only**: Localization limited to English to reduce file count
+- **Easy deployment**: Perfect for development team tools - just run the executable
+
+### Alternative: Create Distribution Package
+
+For easier distribution, you can zip the publish folder:
+
+```bash
+# After publishing, create a zip file
+Compress-Archive -Path "bin\Release\net9.0-windows10.0.19041.0\win-x64\publish\*" -DestinationPath "PaginationTool-Portable.zip"
+```
+
+This approach provides a good balance between file count and functionality, eliminating ClickOnce deployment issues while keeping the application portable and easy to distribute.
+
 ## 🎯 Usage
 
 ### Authentication Options

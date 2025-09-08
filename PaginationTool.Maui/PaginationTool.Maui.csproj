@@ -29,6 +29,7 @@
         <SingleProject>true</SingleProject>
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
+        <EnableDefaultContentItems>false</EnableDefaultContentItems>
         <Nullable>enable</Nullable>
 
         <!-- Display name -->
@@ -43,6 +44,17 @@
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
+        
+        <!-- Publishing settings for optimized self-contained deployment -->
+        <PublishSingleFile>false</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <PublishReadyToRun>false</PublishReadyToRun>
+        <PublishTrimmed>false</PublishTrimmed>
+        <!-- Reduce localization files to English only -->
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+        <InvariantGlobalization>false</InvariantGlobalization>
+        <!-- Exclude unnecessary culture-specific assemblies -->
+        <PublishCultures>en</PublishCultures>
 
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
@@ -78,6 +90,19 @@
 
     <ItemGroup>
       <ProjectReference Include="..\PaginationTool.Shared\PaginationTool.Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Include wwwroot content for BlazorWebView -->
+        <Content Include="wwwroot\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Preserve assemblies needed for MAUI Blazor -->
+        <TrimmerRootAssembly Include="Microsoft.AspNetCore.Components.WebView.Maui" />
+        <TrimmerRootAssembly Include="Microsoft.Maui.Controls" />
+        <TrimmerRootAssembly Include="Microsoft.Maui" />
+        <TrimmerRootAssembly Include="PaginationTool.Shared" />
     </ItemGroup>
 
 </Project>
