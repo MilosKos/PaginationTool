@@ -7,6 +7,7 @@ namespace PaginationTool.Shared
     public partial class PaginationToolComponent : ComponentBase
     {
         [Inject] private QueryService QueryService { get; set; } = null!;
+        [Inject] private TokenService TokenService { get; set; } = null!;
 
         private ApiQueryConfig Config { get; set; } = new();
         private bool UseDirectToken { get; set; } = true;
@@ -14,6 +15,9 @@ namespace PaginationTool.Shared
         private string StatusMessage { get; set; } = string.Empty;
         private QueryResult? LastResult { get; set; }
         private CancellationTokenSource? _cancellationTokenSource;
+        
+        private bool IsStandardTokenParameter => 
+            Config.PaginationTokenParameter == "nextToken" || Config.PaginationTokenParameter == "pageToken";
 
         private void SetAuthType(bool useDirectToken)
         {
@@ -29,6 +33,41 @@ namespace PaginationTool.Shared
             else
             {
                 Config.Authentication.BearerToken = string.Empty;
+            }
+
+            StateHasChanged();
+        }
+
+        private void ClearAuthToken()
+        {
+            // Clear only the cached token in the TokenService
+            TokenService.ClearCache();
+            
+            // Show confirmation message
+            StatusMessage = "Cached authentication token has been cleared. A new token will be generated on the next request.";
+            LastResult = null;
+            StateHasChanged();
+        }
+
+        private void OnTokenParameterSelectChange(ChangeEventArgs e)
+        {
+            var selectedValue = e.Value?.ToString();
+            
+            if (selectedValue == "nextToken")
+            {
+                Config.PaginationTokenParameter = "nextToken";
+            }
+            else if (selectedValue == "pageToken")
+            {
+                Config.PaginationTokenParameter = "pageToken";
+            }
+            else if (selectedValue == "custom")
+            {
+                // Keep the current value or set to empty for user to enter custom value
+                if (IsStandardTokenParameter)
+                {
+                    Config.PaginationTokenParameter = string.Empty;
+                }
             }
 
             StateHasChanged();
@@ -151,6 +190,13 @@ namespace PaginationTool.Shared
 
             if (string.IsNullOrWhiteSpace(Config.TenantId))
                 errors.Add("Tenant ID is required");
+
+            if (string.IsNullOrWhiteSpace(Config.PaginationTokenParameter))
+                errors.Add("Pagination Token Parameter is required");
+
+            // Validate sorting configuration
+            if (Config.EnableSorting && string.IsNullOrWhiteSpace(Config.SortField))
+                errors.Add("Sort field is required when sorting is enabled");
 
             if (UseDirectToken)
             {

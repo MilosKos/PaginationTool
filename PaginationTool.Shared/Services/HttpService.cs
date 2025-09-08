@@ -50,7 +50,7 @@ namespace PaginationTool.Shared.Services
             return await GetPaginatedDataAsync<object>(url, tenantId, authConfig);
         }
 
-        public string BuildUrlWithParameters(string baseUrl, int? take = null, string? nextToken = null)
+        public string BuildUrlWithParameters(string baseUrl, int? take = null, string? nextToken = null, string tokenParameterName = "nextToken")
         {
             var uriBuilder = new UriBuilder(baseUrl);
             var queryParams = new List<string>();
@@ -72,14 +72,14 @@ namespace PaginationTool.Shared.Services
 
             if (!string.IsNullOrEmpty(nextToken))
             {
-                queryParams.Add($"nextToken={Uri.EscapeDataString(nextToken)}");
+                queryParams.Add($"{tokenParameterName}={Uri.EscapeDataString(nextToken)}");
             }
 
             uriBuilder.Query = string.Join("&", queryParams);
             return uriBuilder.ToString();
         }
 
-        public string? ExtractNextTokenFromUrl(string? nextLink)
+        public string? ExtractNextTokenFromUrl(string? nextLink, string tokenParameterName = "nextToken")
         {
             if (string.IsNullOrEmpty(nextLink))
                 return null;
@@ -101,7 +101,7 @@ namespace PaginationTool.Shared.Services
                 foreach (var pair in pairs)
                 {
                     var parts = pair.Split('=', 2);
-                    if (parts.Length == 2 && parts[0] == "nextToken")
+                    if (parts.Length == 2 && parts[0] == tokenParameterName)
                     {
                         return Uri.UnescapeDataString(parts[1]);
                     }

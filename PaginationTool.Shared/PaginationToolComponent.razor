@@ -39,6 +39,55 @@
                                    min="1" max="1000" />
                             <div class="form-text">Number of items to request per page (take parameter)</div>
                         </div>
+                        <div class="mb-3">
+                            <label for="paginationTokenParam" class="form-label">Pagination Token Parameter</label>
+                            <div class="input-group">
+                                <select class="form-select" id="paginationTokenSelect" @onchange="OnTokenParameterSelectChange" 
+                                        style="max-width: 150px;">
+                                    <option value="nextToken" selected="@(Config.PaginationTokenParameter == "nextToken")">nextToken</option>
+                                    <option value="pageToken" selected="@(Config.PaginationTokenParameter == "pageToken")">pageToken</option>
+                                    <option value="custom" selected="@(!IsStandardTokenParameter)">Custom</option>
+                                </select>
+                                <input type="text" class="form-control" id="paginationTokenParam" @bind="Config.PaginationTokenParameter" 
+                                       placeholder="nextToken" disabled="@IsStandardTokenParameter" />
+                            </div>
+                            <div class="form-text">Query parameter name used for pagination tokens (e.g., nextToken, pageToken, or custom)</div>
+                            
+                            <!-- Service Token Parameter Cheat Sheet -->
+                            <div class="mt-2">
+                                <small class="text-muted fw-bold">Quick Reference:</small>
+                                <table class="table table-sm table-bordered mt-1" style="font-size: 0.8rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 50%;">Service</th>
+                                            <th style="width: 50%;">Token Parameter</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>IAM</strong></td>
+                                            <td><code>nextToken</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>MLM</strong></td>
+                                            <td><code>pageToken</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>WFM</strong></td>
+                                            <td><code>nextToken</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Onboarding</strong></td>
+                                            <td><code>pageToken</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Learning</strong></td>
+                                            <td><code>pageToken</code></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -91,6 +140,70 @@
                                 <label for="clientSecret" class="form-label">Client Secret <span class="text-danger">*</span></label>
                                 <input type="password" class="form-control" id="clientSecret" @bind="Config.Authentication.ClientSecret" 
                                        placeholder="your-client-secret" />
+                            </div>
+                        }
+                        
+                        <div class="mt-3 pt-3 border-top">
+                            <button type="button" class="btn btn-outline-warning btn-sm" 
+                                    @onclick="ClearAuthToken" 
+                                    disabled="@IsProcessing"
+                                    title="Clear cached authentication token">
+                                <i class="fas fa-sync-alt"></i> Clear Cached Token
+                            </button>
+                            <div class="form-text mt-1">
+                                Clear cached token to force generation of a new one on next request (keeps entered credentials)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Options Panel -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">📁 Output Options</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-6 mb-3">
+                                <label for="customFilename" class="form-label">Custom Filename String (Optional)</label>
+                                <input type="text" class="form-control" id="customFilename" @bind="Config.CustomFilenameString" 
+                                       placeholder="e.g., companies, users, products" />
+                                <div class="form-text">Optional text to prefix the filename. Format: [custom]_[tenant]_[timestamp].json or api_data_[tenant]_[timestamp].json if not provided</div>
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label class="form-label">Data Sorting</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="enableSorting" 
+                                           @bind="Config.EnableSorting" @bind:event="onchange" />
+                                    <label class="form-check-label" for="enableSorting">
+                                        🔀 Enable sorting
+                                    </label>
+                                </div>
+                                <div class="form-text">Sort the merged data before saving to file</div>
+                            </div>
+                        </div>
+                        
+                        @if (Config.EnableSorting)
+                        {
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label for="sortField" class="form-label">Sort by field <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="sortField" 
+                                           @bind="Config.SortField" @bind:event="oninput"
+                                           placeholder="e.g., id, name, createdDate" />
+                                    <div class="form-text">Enter the exact field name from the API response</div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="sortOrder" class="form-label">Sort order</label>
+                                    <select class="form-select" id="sortOrder" @bind="Config.SortAscending">
+                                        <option value="true">Ascending (A-Z, 1-9)</option>
+                                        <option value="false">Descending (Z-A, 9-1)</option>
+                                    </select>
+                                </div>
                             </div>
                         }
                     </div>
@@ -199,7 +312,7 @@
                                     <li>Returns JSON with <code>value</code> array containing data</li>
                                     <li>Returns <code>nextLink</code> for pagination (optional)</li>
                                     <li>Supports <code>take</code> query parameter for page size</li>
-                                    <li>Supports <code>nextToken</code> query parameter for next page</li>
+                                    <li>Supports configurable pagination token parameter (e.g., <code>nextToken</code>, <code>pageToken</code>, or custom)</li>
                                 </ul>
                             </div>
                             <div class="col-md-6">
@@ -212,11 +325,20 @@
   "nextLink": "/companies?nextToken=ABC123&take=2"
 }</code></pre>
                                 
+                                <h6>Pagination Token Examples:</h6>
+                                <ul class="small">
+                                    <li><code>nextToken=ABC123</code> (default)</li>
+                                    <li><code>pageToken=XYZ789</code></li>
+                                    <li><code>continuationToken=DEF456</code> (custom)</li>
+                                </ul>
+                                
                                 <h6>Output:</h6>
                                 <ul>
                                     <li>All data merged from all pages</li>
+                                    <li>Optional sorting by any field (string-based)</li>
                                     <li>Saved as JSON file in Downloads/PaginationTool/</li>
-                                    <li>Filename includes timestamp</li>
+                                    <li>Filename includes timestamp and optional custom string</li>
+                                    <li>Filename format: <code>[custom]_[tenant]_[timestamp].json</code> or <code>api_data_[tenant]_[timestamp].json</code></li>
                                 </ul>
                             </div>
                         </div>
